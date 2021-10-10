@@ -24,10 +24,10 @@ import (
 type Result struct {
 	Allowed  bool
 	Msg      string
-	PatchOps []PatchOperation
+	PatchOps []patchOperation
 }
 
-type PatchOperation struct {
+type patchOperation struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
 	From  string      `json:"from"`
@@ -39,16 +39,16 @@ func executeWebhook(r *admissionv1.AdmissionRequest) (*Result, error) {
 		return &Result{Msg: fmt.Sprintf("Invalid operation: %s", r.Operation)}, nil
 	}
 
-	var operations []PatchOperation
+	var operations []patchOperation
 	var service corev1.Service
 	if err := json.Unmarshal(r.Object.Raw, &service); err != nil {
 		return &Result{Msg: err.Error()}, nil
 	}
 
-	if service.Spec.IPFamilyPolicy == nil {
+	if service.Spec.IPFamilyPolicy == nil && service.Spec.Type != corev1.ServiceTypeExternalName {
 		operations = append(
 			operations,
-			PatchOperation{
+			patchOperation{
 				Op:    "add",
 				Path:  "/spec/ipFamilyPolicy",
 				Value: "PreferDualStack",
